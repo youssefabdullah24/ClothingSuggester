@@ -67,17 +67,16 @@
         android:layout_marginTop="8dp"
         android:text="Recommended Outfit"
         android:textColor="@color/white"
-        app:layout_constraintBottom_toBottomOf="@id/topImageView"
+        app:layout_constraintTop_toBottomOf="@id/topImageView"
         app:layout_constraintEnd_toEndOf="@id/bottomImageView"
-        app:layout_constraintStart_toStartOf="@id/topImageView"
-        app:layout_constraintTop_toBottomOf="@id/topImageView" />
+        app:layout_constraintStart_toStartOf="@id/topImageView" />
 
     <ImageView
         android:id="@+id/topImageView"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_marginTop="16sp"
-        android:scaleType="fitXY"
+        android:scaleType="fitCenter"
         app:layout_constraintEnd_toStartOf="@id/bottomImageView"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
@@ -88,7 +87,7 @@
         android:id="@+id/bottomImageView"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:scaleType="fitXY"
+        android:scaleType="fitCenter"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/topImageView"
         app:layout_constraintTop_toTopOf="@id/topImageView"

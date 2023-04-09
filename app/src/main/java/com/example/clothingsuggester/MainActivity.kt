@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.IntentSender
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
@@ -31,7 +32,8 @@ import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Date
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 
 class MainActivity : AppCompatActivity() {
@@ -39,29 +41,28 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clothes: ArrayList<Cloth>
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
-    private val requestPermsContent =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
-            if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
-                checkLocationOptionsAndGetUserCoordinates()
-            } else {
-                AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
-                    .setTitle("Location permission is needed")
-                    .setPositiveButton("OK") { dialog, p1 ->
-                        val intent = Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.parse("package:$packageName")
-                        )
-                        intent.addCategory(Intent.CATEGORY_DEFAULT)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
+    private val requestPermsContent = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
+        if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            checkLocationOptionsAndGetUserCoordinates()
+        } else {
+            AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+                .setTitle("Location permission is needed")
+                .setPositiveButton("OK") { dialog, p1 ->
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                    intent.addCategory(Intent.CATEGORY_DEFAULT)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
 
-                        dialog.dismiss()
+                    dialog.dismiss()
 
-                    }.setNegativeButton("Dismiss") { dialog, p1 ->
-                        dialog.dismiss()
-                    }.show()
-            }
+                }.setNegativeButton("Dismiss") { dialog, p1 ->
+                    dialog.dismiss()
+                }.show()
         }
+    }
     private val locationsServicesContent =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
             if (it.resultCode == Activity.RESULT_OK) {
@@ -75,13 +76,13 @@ class MainActivity : AppCompatActivity() {
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        initWeatherIcons()
+        initData()
         checkLocationOptionsAndGetUserCoordinates()
 
 
     }
 
-    private fun initWeatherIcons() {
+    private fun initData() {
         weatherIcons = ArrayList()
         weatherIcons.apply {
             add(WeatherIcon(R.drawable.i01, 1))
@@ -159,9 +160,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkLocationOptionsAndGetUserCoordinates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (isLocationPermissionGranted()) {
             val locationRequest = LocationRequest.create()
             locationRequest.priority = LocationRequest.PRIORITY_LOW_POWER
             val locationSettingsBuilder =
@@ -195,6 +194,10 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
+    private fun isLocationPermissionGranted() =
+        ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     private fun getLocationInfo(lat: String, lon: String) {
         val r = Request.Builder().url(
@@ -284,10 +287,9 @@ class MainActivity : AppCompatActivity() {
                     val iconResource = weatherIcons.find { it.iconValue == weatherIcon }!!.iconResId
                     runOnUiThread {
                         binding.contentMain.apply {
-                            locationTextView.text = "${area}, ${city}, ${country}"
+                            locationTextView.text = "${city}, ${area}, $country"
                             temperatureTv.text = "${temp}°C"
-                            highLowTextView.text =
-                                "${max}°C / ${min}°C Feels like ${feelsLike}°C"
+                            highLowTextView.text = "${max}°C / ${min}°C Feels like ${feelsLike}°C"
                             weatherTextTv.text = weatherText
                             root.background = ResourcesCompat.getDrawable(
                                 resources, if (isDayTime) R.drawable.background_day else R.drawable.background_night, null
@@ -307,41 +309,52 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         }
-
                     }
                 }
             }
 
         })
-
-
     }
 
     private fun updateOutfit(weather: WEATHER) {
         val prefs = getSharedPreferences(KEY_PREF, Activity.MODE_PRIVATE)
-        val currentOutfit = prefs.getInt(KEY_PREF_OUTFIT, -1)
-        if (currentOutfit != -1) {
+        val currentOutfitId = prefs.getInt(KEY_PREF_OUTFIT_ID, -1)
+        if (currentOutfitId != -1) {
             val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
-            if(timestamp != -1L) {
-                val currentDate = LocalDate.now().dayOfYear
-                val oldDate = LocalDate.ofEpochDay(timestamp).dayOfYear
-                val diff = currentDate.minus(oldDate)
-                if(diff >=1){
-                    
+            if (timestamp != -1L) {
+                val currentDate = LocalDate.now()
+                val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
+                val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
+                if (diff >= 1) {
+                    val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
+                    if (condition == weather.ordinal) {
+                        val newOutfitId = if (currentOutfitId == 0) 1 else 0 
+                        val suitableOutfit = clothes.filter { it.weather == weather && it.id == newOutfitId }[0]
+                        updateSavedOutfit(prefs, suitableOutfit)
+                    } else {
+                        val suitableOutfit = clothes.filter { it.weather == weather }[0]
+                        updateSavedOutfit(prefs, suitableOutfit)
+                    }
+                } else {
+                    val suitableOutfit = clothes.filter { it.weather == weather }[0]
+                    updateSavedOutfit(prefs, suitableOutfit)
                 }
-
             }
-
         } else {
             val suitableOutfit = clothes.filter { it.weather == weather }[0]
-            prefs.edit().putInt(KEY_PREF_OUTFIT, suitableOutfit.id).apply()
-            prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
-            binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
-            binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
+            updateSavedOutfit(prefs, suitableOutfit)
 
         }
 
 
+    }
+
+    private fun updateSavedOutfit(prefs: SharedPreferences, suitableOutfit: Cloth) {
+        prefs.edit().putInt(KEY_PREF_OUTFIT_ID, suitableOutfit.id).apply()
+        prefs.edit().putInt(KEY_PREF_OUTFIT_WEATHER, suitableOutfit.weather.ordinal).apply()
+        prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
+        binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
+        binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
     }
 
     override fun onDestroy() {
@@ -356,7 +369,8 @@ class MainActivity : AppCompatActivity() {
         private const val PATH_CONDITION = "currentconditions//v1"
         private const val APIKEY = "3V7YuVcFgMrZFt9oLUTJAoVaFu8IXX2C"
         private const val KEY_PREF = "prefs"
-        private const val KEY_PREF_OUTFIT = "prefs_outfit"
+        private const val KEY_PREF_OUTFIT_ID = "prefs_outfit_id"
+        private const val KEY_PREF_OUTFIT_WEATHER = "prefs_outfit_weather"
         private const val KEY_PREF_TIMESTAMP = "prefs_timestamp"
     }
 
