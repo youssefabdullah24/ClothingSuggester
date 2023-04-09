@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Clothing Suggester</string>
+    <string name="recommended_outfit">Recommended Outfit</string>
 </resources>

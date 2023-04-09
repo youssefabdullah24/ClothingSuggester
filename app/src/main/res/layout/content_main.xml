@@ -62,11 +62,13 @@
         app:layout_constraintTop_toTopOf="@id/temperatureTv" />
 
     <TextView
+        android:id="@+id/recommendedOutfitTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Recommended Outfit"
+        android:text="@string/recommended_outfit"
         android:textColor="@color/white"
+        android:visibility="invisible"
         app:layout_constraintTop_toBottomOf="@id/topImageView"
         app:layout_constraintEnd_toEndOf="@id/bottomImageView"
         app:layout_constraintStart_toStartOf="@id/topImageView" />

@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.View
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -66,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     private val locationsServicesContent =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
             if (it.resultCode == Activity.RESULT_OK) {
-                getUserCoordinates()
+                checkLocationOptionsAndGetUserCoordinates()
             }
         }
 
@@ -319,26 +320,26 @@ class MainActivity : AppCompatActivity() {
     private fun updateOutfit(weather: WEATHER) {
         val prefs = getSharedPreferences(KEY_PREF, Activity.MODE_PRIVATE)
         val currentOutfitId = prefs.getInt(KEY_PREF_OUTFIT_ID, -1)
-        if (currentOutfitId != -1) {
-            val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
-            if (timestamp != -1L) {
-                val currentDate = LocalDate.now()
-                val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
-                val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
-                if (diff >= 1) {
-                    val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
-                    if (condition == weather.ordinal) {
-                        val newOutfitId = if (currentOutfitId == 0) 1 else 0 
-                        val suitableOutfit = clothes.filter { it.weather == weather && it.id == newOutfitId }[0]
-                        updateSavedOutfit(prefs, suitableOutfit)
-                    } else {
-                        val suitableOutfit = clothes.filter { it.weather == weather }[0]
-                        updateSavedOutfit(prefs, suitableOutfit)
-                    }
+        val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
+        if (currentOutfitId != -1 && timestamp != -1L) {
+            val currentDate = LocalDate.now()
+            val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
+            val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
+            if (diff >= 1) {
+                val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
+                if (condition == weather.ordinal) {
+                    val newOutfitId = if (currentOutfitId == 0) 1 else 0
+                    val suitableOutfit = clothes.filter { it.weather == weather && it.id == newOutfitId }[0]
+                    updateSavedOutfit(prefs, suitableOutfit)
                 } else {
                     val suitableOutfit = clothes.filter { it.weather == weather }[0]
                     updateSavedOutfit(prefs, suitableOutfit)
                 }
+            } else {
+                val suitableOutfit = clothes.filter { it.weather == weather && it.id == currentOutfitId }[0]
+                binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
+                binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
+                binding.contentMain.recommendedOutfitTextView.visibility = View.VISIBLE
             }
         } else {
             val suitableOutfit = clothes.filter { it.weather == weather }[0]
@@ -355,6 +356,7 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
         binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
         binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
+        binding.contentMain.recommendedOutfitTextView.visibility = View.VISIBLE
     }
 
     override fun onDestroy() {
