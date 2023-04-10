@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Clothing Suggester</string>
     <string name="recommended_outfit">Recommended Outfit</string>
+    <string name="current_location">%s, %s, %s</string>
+    <string name="current_temperature">%d°C</string>
+    <string name="high_low_temperature">%d°C / %d°C Feels like %d°C</string>
 </resources>
