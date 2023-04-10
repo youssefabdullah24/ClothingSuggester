@@ -1,32 +1,20 @@
 package com.example.clothingsuggester
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
-import android.content.IntentSender
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.location.LocationManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.View
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.res.ResourcesCompat
 import com.example.clothingsuggester.databinding.ActivityMainBinding
-import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationSettingsRequest
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -42,43 +30,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clothes: ArrayList<Cloth>
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
-    private val requestPermsContent = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms: Map<String, Boolean> ->
-        if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
-            checkLocationOptionsAndGetUserCoordinates()
-        } else {
-            AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
-                .setTitle("Location permission is needed")
-                .setPositiveButton("OK") { dialog, p1 ->
-                    val intent = Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.parse("package:$packageName")
-                    )
-                    intent.addCategory(Intent.CATEGORY_DEFAULT)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
-
-                    dialog.dismiss()
-
-                }.setNegativeButton("Dismiss") { dialog, p1 ->
-                    dialog.dismiss()
-                }.show()
-        }
-    }
-    private val locationsServicesContent =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
-            if (it.resultCode == Activity.RESULT_OK) {
-                checkLocationOptionsAndGetUserCoordinates()
-            }
-        }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
         initData()
-        checkLocationOptionsAndGetUserCoordinates()
+        getLocationInfo("30.033333", "31.233334")
 
 
     }
@@ -143,63 +102,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    @SuppressLint("MissingPermission")
-    private fun getUserCoordinates() {
-        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val location = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
-        } else {
-            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-        }
-        if (location != null) {
-            val lat = location.latitude.toString()
-            val lon = location.longitude.toString()
-            getLocationInfo(lat, lon)
-        }
-
-
-    }
-
-    private fun checkLocationOptionsAndGetUserCoordinates() {
-        if (isLocationPermissionGranted()) {
-            val locationRequest = LocationRequest.create()
-            locationRequest.priority = LocationRequest.PRIORITY_LOW_POWER
-            val locationSettingsBuilder =
-                LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
-            val locationServices = LocationServices.getSettingsClient(this)
-            locationServices.checkLocationSettings(locationSettingsBuilder.build()).addOnCompleteListener {
-                if (it.isSuccessful) {
-                    getUserCoordinates()
-                }
-            }.addOnFailureListener {
-                if (it is ResolvableApiException) {
-                    try {
-                        val intentSenderRequest = IntentSenderRequest.Builder(it.resolution).build()
-                        locationsServicesContent.launch(intentSenderRequest)
-                    } catch (sendEx: IntentSender.SendIntentException) {
-                        Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
-                    }
-                } else {
-                    AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
-                        .setTitle("Location permission is needed")
-                        .setPositiveButton("OK") { dialog, p1 ->
-                            checkLocationOptionsAndGetUserCoordinates()
-                            dialog.dismiss()
-                        }.setNegativeButton("Dismiss") { dialog, p1 ->
-                            dialog.dismiss()
-                        }.show()
-                }
-            }
-        } else {
-            requestPermsContent.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-        }
-
-    }
-
-    private fun isLocationPermissionGranted() =
-        ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
     private fun getLocationInfo(lat: String, lon: String) {
         val r = Request.Builder().url(
             HttpUrl.Builder()
@@ -241,7 +143,6 @@ class MainActivity : AppCompatActivity() {
                 .addPathSegments(PATH_CONDITION + "//${cityKey}")
                 .addQueryParameter("apikey", APIKEY)
                 .addQueryParameter("details", "true")
-                //.addQueryParameter("q", cityKey)
                 .build()
         )
             .build()
@@ -287,10 +188,10 @@ class MainActivity : AppCompatActivity() {
                         .toInt()
                     val iconResource = weatherIcons.find { it.iconValue == weatherIcon }!!.iconResId
                     runOnUiThread {
-                        binding.contentMain.apply {
-                            locationTextView.text = "${city}, ${area}, $country"
-                            temperatureTv.text = "${temp}°C"
-                            highLowTextView.text = "${max}°C / ${min}°C Feels like ${feelsLike}°C"
+                        binding.apply {
+                            locationTextView.text = getString(R.string.current_location, city, area, country)
+                            temperatureTv.text = getString(R.string.current_temperature, temp)
+                            highLowTextView.text = getString(R.string.high_low_temperature, max, min, feelsLike)
                             weatherTextTv.text = weatherText
                             root.background = ResourcesCompat.getDrawable(
                                 resources, if (isDayTime) R.drawable.background_day else R.drawable.background_night, null
@@ -337,9 +238,11 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 val suitableOutfit = clothes.filter { it.weather == weather && it.id == currentOutfitId }[0]
-                binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
-                binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
-                binding.contentMain.recommendedOutfitTextView.visibility = View.VISIBLE
+                binding.apply {
+                    topImageView.setImageResource(suitableOutfit.topResId)
+                    bottomImageView.setImageResource(suitableOutfit.bottomResId)
+                    recommendedOutfitTextView.visibility = View.VISIBLE
+                }
             }
         } else {
             val suitableOutfit = clothes.filter { it.weather == weather }[0]
@@ -354,9 +257,11 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putInt(KEY_PREF_OUTFIT_ID, suitableOutfit.id).apply()
         prefs.edit().putInt(KEY_PREF_OUTFIT_WEATHER, suitableOutfit.weather.ordinal).apply()
         prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
-        binding.contentMain.topImageView.setImageResource(suitableOutfit.topResId)
-        binding.contentMain.bottomImageView.setImageResource(suitableOutfit.bottomResId)
-        binding.contentMain.recommendedOutfitTextView.visibility = View.VISIBLE
+        binding.apply {
+            topImageView.setImageResource(suitableOutfit.topResId)
+            bottomImageView.setImageResource(suitableOutfit.bottomResId)
+            recommendedOutfitTextView.visibility = View.VISIBLE
+        }
     }
 
     override fun onDestroy() {
