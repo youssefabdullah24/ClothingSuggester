@@ -148,7 +148,6 @@ class MainActivity : AppCompatActivity() {
             .build()
         val client = OkHttpClient()
         val call = client.newCall(r)
-        runOnUiThread { }
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 Log.d(TAG, "onFailure: ${e.message}", e)
@@ -197,18 +196,18 @@ class MainActivity : AppCompatActivity() {
                                 resources, if (isDayTime) R.drawable.background_day else R.drawable.background_night, null
                             )
                             weatherIconImageView.setImageResource(iconResource)
-                            when (temp) {
-                                in Int.MIN_VALUE..10 -> {
-                                    updateOutfit(WEATHER.COLD)
-                                }
+                        }
+                        when (temp) {
+                            in Int.MIN_VALUE..10 -> {
+                                updateOutfit(WEATHER.COLD)
+                            }
 
-                                in 11..20 -> {
-                                    updateOutfit(WEATHER.MODERATE)
-                                }
+                            in 11..20 -> {
+                                updateOutfit(WEATHER.MODERATE)
+                            }
 
-                                in 21..Int.MAX_VALUE -> {
-                                    updateOutfit(WEATHER.HOT)
-                                }
+                            in 21..Int.MAX_VALUE -> {
+                                updateOutfit(WEATHER.HOT)
                             }
                         }
                     }
