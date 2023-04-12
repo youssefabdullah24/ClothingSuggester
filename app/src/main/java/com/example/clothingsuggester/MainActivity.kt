@@ -27,17 +27,21 @@ import java.time.temporal.ChronoUnit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var weatherIcons: ArrayList<WeatherIcon>
-    private lateinit var clothes: ArrayList<Cloth>
+   // private lateinit var clothes: ArrayList<Cloth>
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
-
+    private lateinit var topAdapter: TopAdapter
+    private lateinit var bottomAdapter: BottomAdapter
+    private lateinit var outfits: ArrayList<Cloth>
+    private lateinit var tops: ArrayList<Top>
+    private lateinit var bottoms: ArrayList<Bottom>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initData()
-        getLocationInfo("30.033333", "31.233334")
+        getLocationInfo()
 
 
     }
@@ -87,29 +91,34 @@ class MainActivity : AppCompatActivity() {
             add(WeatherIcon(R.drawable.i44, 44))
         }
 
-
-        clothes = ArrayList()
-        clothes.apply {
-            add(Cloth(0, R.drawable.summertshirt1, R.drawable.summerpants1, WEATHER.HOT))
-            add(Cloth(1, R.drawable.summertshirt2, R.drawable.summerpants2, WEATHER.HOT))
-            add(Cloth(0, R.drawable.autumnshirt1, R.drawable.autumnpants1, WEATHER.MODERATE))
-            add(Cloth(1, R.drawable.autumnshirt2, R.drawable.autumnpants2, WEATHER.MODERATE))
-            add(Cloth(0, R.drawable.winterjacket1, R.drawable.winterpants1, WEATHER.COLD))
-            add(Cloth(1, R.drawable.winterjacket2, R.drawable.winterpants2, WEATHER.COLD))
-
-
+        outfits = arrayListOf()
+        outfits.add(Cloth(0, Top(R.drawable.summertshirt1), Bottom(R.drawable.summerpants1), WEATHER.HOT))
+        outfits.add(Cloth(1, Top(R.drawable.summertshirt2), Bottom(R.drawable.summerpants2), WEATHER.HOT))
+        outfits.add(Cloth(0, Top(R.drawable.autumnshirt1), Bottom(R.drawable.autumnpants1), WEATHER.MODERATE))
+        outfits.add(Cloth(1, Top(R.drawable.autumnshirt2), Bottom(R.drawable.autumnpants2), WEATHER.MODERATE))
+        outfits.add(Cloth(0, Top(R.drawable.winterjacket1), Bottom(R.drawable.winterpants1), WEATHER.COLD))
+        outfits.add(Cloth(1, Top(R.drawable.winterjacket2), Bottom(R.drawable.winterpants2), WEATHER.COLD))
+        tops = arrayListOf()
+        bottoms = arrayListOf()
+        outfits.forEach {
+            tops.add(it.top)
+            bottoms.add(it.bottom)
         }
+        topAdapter = TopAdapter()
+        bottomAdapter = BottomAdapter()
+        binding.topRecyclerView.adapter = topAdapter
+        binding.bottomRecyclerView.adapter = bottomAdapter
 
     }
 
-    private fun getLocationInfo(lat: String, lon: String) {
+    private fun getLocationInfo() {
         val r = Request.Builder().url(
             HttpUrl.Builder()
                 .scheme("http")
                 .host(HOST)
                 .addPathSegments(PATH_SEARCH)
                 .addQueryParameter("apikey", APIKEY)
-                .addQueryParameter("q", "$lat,$lon")
+                .addQueryParameter("q", "30.033333,31.233334")
                 .build()
         )
             .build()
@@ -168,13 +177,6 @@ class MainActivity : AppCompatActivity() {
                         .getJSONObject("Metric")
                         .getDouble("Value")
                         .toInt()
-                    val humidity = weatherCondition.getInt("RelativeHumidity")
-                    val wind = weatherCondition.getJSONObject("Wind")
-                        .getJSONObject("Speed")
-                        .getJSONObject("Metric")
-                        .getDouble("Value")
-                        .toInt()
-                    val uvIndex = weatherCondition.getString("UVIndexText")
                     val minMax = weatherCondition.getJSONObject("TemperatureSummary")
                         .getJSONObject("Past24HourRange")
                     val min = minMax.getJSONObject("Minimum")
@@ -229,22 +231,28 @@ class MainActivity : AppCompatActivity() {
                 val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
                 if (condition == weather.ordinal) {
                     val newOutfitId = if (currentOutfitId == 0) 1 else 0
-                    val suitableOutfit = clothes.filter { it.weather == weather && it.id == newOutfitId }[0]
+                    val suitableOutfit = outfits.filter { it.weather == weather && it.id == newOutfitId }[0]
                     updateSavedOutfit(prefs, suitableOutfit)
                 } else {
-                    val suitableOutfit = clothes.filter { it.weather == weather }[0]
+                    val suitableOutfit = outfits.filter { it.weather == weather }[0]
                     updateSavedOutfit(prefs, suitableOutfit)
                 }
             } else {
-                val suitableOutfit = clothes.filter { it.weather == weather && it.id == currentOutfitId }[0]
+                val suitableOutfit = outfits.filter { it.weather == weather && it.id == currentOutfitId }[0]
+                suitableOutfit.top.isSelected = true
+                suitableOutfit.bottom.isSelected = true
+                tops.find { it.topResId == suitableOutfit.top.topResId }?.isSelected = true
+                bottoms.find { it.bottomResId == suitableOutfit.bottom.bottomResId }?.isSelected = true
+                topAdapter.submitList(tops)
+                bottomAdapter.submitList(bottoms)
                 binding.apply {
-                    topImageView.setImageResource(suitableOutfit.topResId)
-                    bottomImageView.setImageResource(suitableOutfit.bottomResId)
                     recommendedOutfitTextView.visibility = View.VISIBLE
+                    binding.topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
+                    binding.bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
                 }
             }
         } else {
-            val suitableOutfit = clothes.filter { it.weather == weather }[0]
+            val suitableOutfit = outfits.filter { it.weather == weather }[0]
             updateSavedOutfit(prefs, suitableOutfit)
 
         }
@@ -257,9 +265,15 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putInt(KEY_PREF_OUTFIT_WEATHER, suitableOutfit.weather.ordinal).apply()
         prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
         binding.apply {
-            topImageView.setImageResource(suitableOutfit.topResId)
-            bottomImageView.setImageResource(suitableOutfit.bottomResId)
             recommendedOutfitTextView.visibility = View.VISIBLE
+            suitableOutfit.top.isSelected = true
+            suitableOutfit.bottom.isSelected = true
+            tops.find { it.topResId == suitableOutfit.top.topResId }?.isSelected = true
+            bottoms.find { it.bottomResId == suitableOutfit.bottom.bottomResId }?.isSelected = true
+            topAdapter.submitList(tops)
+            bottomAdapter.submitList(bottoms)
+            binding.topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
+            binding.bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
         }
     }
 
@@ -288,13 +302,16 @@ data class WeatherIcon(
     val iconValue: Int
 )
 
+
+
+data class Top(@DrawableRes val topResId: Int, var isSelected:Boolean = false)
+data class Bottom(@DrawableRes val bottomResId: Int, var isSelected:Boolean = false)
 data class Cloth(
     val id: Int,
-    @DrawableRes val topResId: Int,
-    @DrawableRes val bottomResId: Int,
+    val top: Top,
+    val bottom: Bottom,
     val weather: WEATHER
 )
-
 
 enum class WEATHER {
     HOT,

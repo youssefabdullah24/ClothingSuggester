@@ -68,29 +68,32 @@
         android:text="@string/recommended_outfit"
         android:textColor="@color/white"
         android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="@id/bottomImageView"
-        app:layout_constraintStart_toStartOf="@id/topImageView"
-        app:layout_constraintTop_toBottomOf="@id/topImageView" />
-
-    <ImageView
-        android:id="@+id/topImageView"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="16sp"
-        android:scaleType="fitCenter"
-        app:layout_constraintEnd_toStartOf="@id/bottomImageView"
-        app:layout_constraintHorizontal_chainStyle="packed"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/highLowTextView"
-        tools:src="@drawable/summertshirt1" />
-
-    <ImageView
-        android:id="@+id/bottomImageView"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:scaleType="fitCenter"
+        tools:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/topImageView"
-        app:layout_constraintTop_toTopOf="@id/topImageView"
-        tools:src="@drawable/summerpants1" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/highLowTextView" />
+
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/topRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/recommendedOutfitTextView"
+        tools:listitem="@layout/item_top" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/bottomRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topRecyclerView"
+        tools:listitem="@layout/item_bottom" />
 </androidx.constraintlayout.widget.ConstraintLayout>
