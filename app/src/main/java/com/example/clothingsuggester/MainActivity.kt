@@ -27,12 +27,11 @@ import java.time.temporal.ChronoUnit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var weatherIcons: ArrayList<WeatherIcon>
-   // private lateinit var clothes: ArrayList<Cloth>
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
     private lateinit var topAdapter: TopAdapter
     private lateinit var bottomAdapter: BottomAdapter
-    private lateinit var outfits: ArrayList<Cloth>
+    private lateinit var outfits: ArrayList<Outfit>
     private lateinit var tops: ArrayList<Top>
     private lateinit var bottoms: ArrayList<Bottom>
 
@@ -92,12 +91,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         outfits = arrayListOf()
-        outfits.add(Cloth(0, Top(R.drawable.summertshirt1), Bottom(R.drawable.summerpants1), WEATHER.HOT))
-        outfits.add(Cloth(1, Top(R.drawable.summertshirt2), Bottom(R.drawable.summerpants2), WEATHER.HOT))
-        outfits.add(Cloth(0, Top(R.drawable.autumnshirt1), Bottom(R.drawable.autumnpants1), WEATHER.MODERATE))
-        outfits.add(Cloth(1, Top(R.drawable.autumnshirt2), Bottom(R.drawable.autumnpants2), WEATHER.MODERATE))
-        outfits.add(Cloth(0, Top(R.drawable.winterjacket1), Bottom(R.drawable.winterpants1), WEATHER.COLD))
-        outfits.add(Cloth(1, Top(R.drawable.winterjacket2), Bottom(R.drawable.winterpants2), WEATHER.COLD))
+        outfits.add(Outfit(0, Top(R.drawable.summertshirt1), Bottom(R.drawable.summerpants1), WEATHER.HOT))
+        outfits.add(Outfit(1, Top(R.drawable.summertshirt2), Bottom(R.drawable.summerpants2), WEATHER.HOT))
+        outfits.add(Outfit(0, Top(R.drawable.autumnshirt1), Bottom(R.drawable.autumnpants1), WEATHER.MODERATE))
+        outfits.add(Outfit(1, Top(R.drawable.autumnshirt2), Bottom(R.drawable.autumnpants2), WEATHER.MODERATE))
+        outfits.add(Outfit(0, Top(R.drawable.winterjacket1), Bottom(R.drawable.winterpants1), WEATHER.COLD))
+        outfits.add(Outfit(1, Top(R.drawable.winterjacket2), Bottom(R.drawable.winterpants2), WEATHER.COLD))
         tops = arrayListOf()
         bottoms = arrayListOf()
         outfits.forEach {
@@ -260,7 +259,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun updateSavedOutfit(prefs: SharedPreferences, suitableOutfit: Cloth) {
+    private fun updateSavedOutfit(prefs: SharedPreferences, suitableOutfit: Outfit) {
         prefs.edit().putInt(KEY_PREF_OUTFIT_ID, suitableOutfit.id).apply()
         prefs.edit().putInt(KEY_PREF_OUTFIT_WEATHER, suitableOutfit.weather.ordinal).apply()
         prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
@@ -306,7 +305,7 @@ data class WeatherIcon(
 
 data class Top(@DrawableRes val topResId: Int, var isSelected:Boolean = false)
 data class Bottom(@DrawableRes val bottomResId: Int, var isSelected:Boolean = false)
-data class Cloth(
+data class Outfit(
     val id: Int,
     val top: Top,
     val bottom: Bottom,
