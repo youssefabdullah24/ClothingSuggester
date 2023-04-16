@@ -18,16 +18,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+
     private lateinit var weatherIcons: ArrayList<WeatherIcon>
-    private var _binding: ActivityMainBinding? = null
-    private val binding get() = _binding!!
     private lateinit var prefs: SharedPreferences
     private lateinit var topAdapter: TopAdapter
     private lateinit var bottomAdapter: BottomAdapter
@@ -38,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        _binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initData()
         getLocationInfo()
@@ -263,7 +262,7 @@ class MainActivity : AppCompatActivity() {
             saveOutfit(outfit)
         } else {
             if (savedTimestamp != -1L && savedTopId != -1 && savedBottomId != -1) {
-                val currentDate = LocalDate.now()
+                val currentDate = LocalDateTime.now()
                 val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(savedTimestamp), ZoneId.systemDefault())
                 val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
                 if (diff >= 1) {
