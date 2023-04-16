@@ -257,13 +257,11 @@ class MainActivity : AppCompatActivity() {
             savedTopId = getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
             savedBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
         }
-        // lw el weather m4 hwa hwa, replace kda kda.. so check da el awl
         if (savedWeatherOrdinal != weather.ordinal) {
             val outfit = outfits.find { it.weather == weather }!!
             updateViews(outfit)
             saveOutfit(outfit)
         } else {
-            // hna 3ndy data
             if (savedTimestamp != -1L && savedTopId != -1 && savedBottomId != -1) {
                 val currentDate = LocalDate.now()
                 val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(savedTimestamp), ZoneId.systemDefault())
@@ -272,11 +270,11 @@ class MainActivity : AppCompatActivity() {
                     // different day
                     val newTopId = if (savedTopId == 0) 1 else 0
                     val newBottomId = if (savedBottomId == 0) 1 else 0
-                    val suitableOutfit = outfits.filter {
+                    val suitableOutfit = outfits.find {
                         it.weather == weather
                                 && it.top.topResId == newTopId
                                 && it.bottom.bottomResId == newBottomId
-                    }[0]
+                    }!!
                     updateViews(suitableOutfit)
                     saveOutfit(suitableOutfit)
                 } else {
