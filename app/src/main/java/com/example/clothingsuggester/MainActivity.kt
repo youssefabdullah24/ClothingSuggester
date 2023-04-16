@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
@@ -29,11 +28,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var weatherIcons: ArrayList<WeatherIcon>
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
+    private lateinit var prefs: SharedPreferences
     private lateinit var topAdapter: TopAdapter
     private lateinit var bottomAdapter: BottomAdapter
     private lateinit var outfits: ArrayList<Outfit>
     private lateinit var tops: ArrayList<Top>
     private lateinit var bottoms: ArrayList<Bottom>
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initData() {
+        prefs = getSharedPreferences(KEY_PREF, Activity.MODE_PRIVATE)
         weatherIcons = ArrayList()
         weatherIcons.apply {
             add(WeatherIcon(R.drawable.i01, 1))
@@ -91,12 +93,48 @@ class MainActivity : AppCompatActivity() {
         }
 
         outfits = arrayListOf()
-        outfits.add(Outfit(0, Top(R.drawable.summertshirt1), Bottom(R.drawable.summerpants1), WEATHER.HOT))
-        outfits.add(Outfit(1, Top(R.drawable.summertshirt2), Bottom(R.drawable.summerpants2), WEATHER.HOT))
-        outfits.add(Outfit(0, Top(R.drawable.autumnshirt1), Bottom(R.drawable.autumnpants1), WEATHER.MODERATE))
-        outfits.add(Outfit(1, Top(R.drawable.autumnshirt2), Bottom(R.drawable.autumnpants2), WEATHER.MODERATE))
-        outfits.add(Outfit(0, Top(R.drawable.winterjacket1), Bottom(R.drawable.winterpants1), WEATHER.COLD))
-        outfits.add(Outfit(1, Top(R.drawable.winterjacket2), Bottom(R.drawable.winterpants2), WEATHER.COLD))
+        outfits.add(
+            Outfit(
+                0, Top(0, R.drawable.summertshirt1), Bottom(0, R.drawable.summerpants1), WEATHER.HOT
+            )
+        )
+        outfits.add(
+            Outfit(
+                1, Top(1, R.drawable.summertshirt2), Bottom(1, R.drawable.summerpants2), WEATHER.HOT
+            )
+        )
+        outfits.add(
+            Outfit(
+                2,
+                Top(0, R.drawable.autumnshirt1),
+                Bottom(0, R.drawable.autumnpants1),
+                WEATHER.MODERATE
+            )
+        )
+        outfits.add(
+            Outfit(
+                3,
+                Top(1, R.drawable.autumnshirt2),
+                Bottom(1, R.drawable.autumnpants2),
+                WEATHER.MODERATE
+            )
+        )
+        outfits.add(
+            Outfit(
+                4,
+                Top(0, R.drawable.winterjacket1),
+                Bottom(0, R.drawable.winterpants1),
+                WEATHER.COLD
+            )
+        )
+        outfits.add(
+            Outfit(
+                5,
+                Top(1, R.drawable.winterjacket2),
+                Bottom(1, R.drawable.winterpants2),
+                WEATHER.COLD
+            )
+        )
         tops = arrayListOf()
         bottoms = arrayListOf()
         outfits.forEach {
@@ -107,20 +145,17 @@ class MainActivity : AppCompatActivity() {
         bottomAdapter = BottomAdapter()
         binding.topRecyclerView.adapter = topAdapter
         binding.bottomRecyclerView.adapter = bottomAdapter
+        topAdapter.submitList(tops)
+        bottomAdapter.submitList(bottoms)
 
     }
 
     private fun getLocationInfo() {
         val r = Request.Builder().url(
-            HttpUrl.Builder()
-                .scheme("http")
-                .host(HOST)
-                .addPathSegments(PATH_SEARCH)
-                .addQueryParameter("apikey", APIKEY)
-                .addQueryParameter("q", "30.033333,31.233334")
+            HttpUrl.Builder().scheme("http").host(HOST).addPathSegments(PATH_SEARCH)
+                .addQueryParameter("apikey", APIKEY).addQueryParameter("q", "30.033333,31.233334")
                 .build()
-        )
-            .build()
+        ).build()
         val client = OkHttpClient()
         val call = client.newCall(r)
         call.enqueue(object : Callback {
@@ -145,15 +180,10 @@ class MainActivity : AppCompatActivity() {
         val area = areaJsonObject.getJSONObject("AdministrativeArea").getString("EnglishName")
 
         val r = Request.Builder().url(
-            HttpUrl.Builder()
-                .scheme("http")
-                .host(HOST)
+            HttpUrl.Builder().scheme("http").host(HOST)
                 .addPathSegments(PATH_CONDITION + "//${cityKey}")
-                .addQueryParameter("apikey", APIKEY)
-                .addQueryParameter("details", "true")
-                .build()
-        )
-            .build()
+                .addQueryParameter("apikey", APIKEY).addQueryParameter("details", "true").build()
+        ).build()
         val client = OkHttpClient()
         val call = client.newCall(r)
         call.enqueue(object : Callback {
@@ -168,33 +198,31 @@ class MainActivity : AppCompatActivity() {
                     val weatherText = weatherCondition.getString("WeatherText")
                     val weatherIcon = weatherCondition.getInt("WeatherIcon")
                     val isDayTime = weatherCondition.getBoolean("IsDayTime")
-                    val temp = weatherCondition.getJSONObject("Temperature")
-                        .getJSONObject("Metric")
-                        .getDouble("Value")
-                        .toInt()
+                    val temp = weatherCondition.getJSONObject("Temperature").getJSONObject("Metric")
+                        .getDouble("Value").toInt()
                     val feelsLike = weatherCondition.getJSONObject("RealFeelTemperature")
-                        .getJSONObject("Metric")
-                        .getDouble("Value")
-                        .toInt()
+                        .getJSONObject("Metric").getDouble("Value").toInt()
                     val minMax = weatherCondition.getJSONObject("TemperatureSummary")
                         .getJSONObject("Past24HourRange")
-                    val min = minMax.getJSONObject("Minimum")
-                        .getJSONObject("Metric")
-                        .getDouble("Value")
-                        .toInt()
-                    val max = minMax.getJSONObject("Maximum")
-                        .getJSONObject("Metric")
-                        .getDouble("Value")
-                        .toInt()
+                    val min =
+                        minMax.getJSONObject("Minimum").getJSONObject("Metric").getDouble("Value")
+                            .toInt()
+                    val max =
+                        minMax.getJSONObject("Maximum").getJSONObject("Metric").getDouble("Value")
+                            .toInt()
                     val iconResource = weatherIcons.find { it.iconValue == weatherIcon }!!.iconResId
                     runOnUiThread {
                         binding.apply {
-                            locationTextView.text = getString(R.string.current_location, city, area, country)
+                            locationTextView.text =
+                                getString(R.string.current_location, city, area, country)
                             temperatureTv.text = getString(R.string.current_temperature, temp)
-                            highLowTextView.text = getString(R.string.high_low_temperature, max, min, feelsLike)
+                            highLowTextView.text =
+                                getString(R.string.high_low_temperature, max, min, feelsLike)
                             weatherTextTv.text = weatherText
                             root.background = ResourcesCompat.getDrawable(
-                                resources, if (isDayTime) R.drawable.background_day else R.drawable.background_night, null
+                                resources,
+                                if (isDayTime) R.drawable.background_day else R.drawable.background_night,
+                                null
                             )
                             weatherIconImageView.setImageResource(iconResource)
                         }
@@ -208,7 +236,7 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             in 21..Int.MAX_VALUE -> {
-                                updateOutfit(WEATHER.HOT)
+                                updateOutfit(WEATHER.MODERATE)
                             }
                         }
                     }
@@ -218,67 +246,120 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun updateOutfit(weather: WEATHER) {
-        val prefs = getSharedPreferences(KEY_PREF, Activity.MODE_PRIVATE)
-        val currentOutfitId = prefs.getInt(KEY_PREF_OUTFIT_ID, -1)
-        val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
-        if (currentOutfitId != -1 && timestamp != -1L) {
-            val currentDate = LocalDate.now()
-            val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
-            val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
-            if (diff >= 1) {
-                val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
-                if (condition == weather.ordinal) {
-                    val newOutfitId = if (currentOutfitId == 0) 1 else 0
-                    val suitableOutfit = outfits.filter { it.weather == weather && it.id == newOutfitId }[0]
-                    updateSavedOutfit(prefs, suitableOutfit)
+    private fun updateOutfit(weather: WEATHER) {/* val currentTopId = prefs.getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
+         val currentBottomId = prefs.getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
+         val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
+         if (currentTopId != -1 && currentBottomId != -1 && timestamp != -1L) {
+             val currentDate = LocalDate.now()
+             val oldDate =
+                 LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
+             val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
+             if (diff >= 1) {
+                 val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
+                 if (condition == weather.ordinal) {
+                     val newTopId = if (currentTopId == 0) 1 else 0
+                     val newBottomId = if (currentBottomId == 0) 1 else 0
+                     val suitableOutfit = outfits.filter {
+                         it.weather == weather
+                                 && it.top.topResId == newTopId
+                                 && it.bottom.bottomResId == newBottomId
+                     }[0]
+                     updateSavedOutfit(suitableOutfit)
+                 } else {
+                     val suitableOutfit = outfits.filter { it.weather == weather }[0]
+                     updateSavedOutfit(suitableOutfit)
+                 }
+             } else {
+                 val suitableOutfit = outfits.filter {
+                     it.weather == weather
+                             && it.top.id == currentTopId
+                             && it.bottom.id == currentBottomId
+                 }[0]
+                 val top = tops.find { it.id == suitableOutfit.top.id }!!
+                 val bottom = bottoms.find { it.id == suitableOutfit.bottom.id }!!
+                 top.isSelected = true
+                 bottom.isSelected = true
+                 topAdapter.submitList(tops)
+                 bottomAdapter.submitList(bottoms)
+                 binding.apply {
+                     recommendedOutfitTextView.visibility = View.VISIBLE
+                     topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
+                     bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
+                 }
+             }
+         } else {
+             val suitableOutfit = outfits.filter { it.weather == weather }[0]
+             updateSavedOutfit(suitableOutfit)
+         }*/
+        var savedWeatherOrdinal: Int
+        var savedTopId: Int
+        var savedBottomId: Int
+        var savedTimestamp: Long
+        prefs.apply {
+            savedWeatherOrdinal = getInt(KEY_PREF_OUTFIT_WEATHER, -1)
+            savedTimestamp = getLong(KEY_PREF_TIMESTAMP, -1L)
+            savedTopId = getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
+            savedBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
+        }
+        // lw el weather m4 hwa hwa, replace kda kda.. so check da el awl
+        if (savedWeatherOrdinal != weather.ordinal) {
+            val outfit = outfits.find { it.weather == weather }!!
+            updateViews(outfit)
+            saveOutfit(outfit)
+        } else {
+            // hna 3ndy data
+            if (savedTimestamp != -1L && savedTopId != -1 && savedBottomId != -1) {
+                val currentDate = LocalDate.now()
+                val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(savedTimestamp), ZoneId.systemDefault())
+                val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
+                if (diff >= 1) {
+                    // different day
+                    val newTopId = if (savedTopId == 0) 1 else 0
+                    val newBottomId = if (savedBottomId == 0) 1 else 0
+                    val suitableOutfit = outfits.filter {
+                        it.weather == weather
+                                && it.top.topResId == newTopId
+                                && it.bottom.bottomResId == newBottomId
+                    }[0]
+                    updateViews(suitableOutfit)
+                    saveOutfit(suitableOutfit)
                 } else {
-                    val suitableOutfit = outfits.filter { it.weather == weather }[0]
-                    updateSavedOutfit(prefs, suitableOutfit)
+                    // same day
+                    val outfit = outfits.find { it.top.id == savedTopId && it.bottom.id == savedBottomId }!!
+                    updateViews(outfit)
                 }
             } else {
-                val suitableOutfit = outfits.filter { it.weather == weather && it.id == currentOutfitId }[0]
-                suitableOutfit.top.isSelected = true
-                suitableOutfit.bottom.isSelected = true
-                tops.find { it.topResId == suitableOutfit.top.topResId }?.isSelected = true
-                bottoms.find { it.bottomResId == suitableOutfit.bottom.bottomResId }?.isSelected = true
-                topAdapter.submitList(tops)
-                bottomAdapter.submitList(bottoms)
-                binding.apply {
-                    recommendedOutfitTextView.visibility = View.VISIBLE
-                    binding.topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
-                    binding.bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
-                }
+                // no data.
+                val outfit = outfits.find { it.weather == weather }!!
+                updateViews(outfit)
+                saveOutfit(outfit)
             }
-        } else {
-            val suitableOutfit = outfits.filter { it.weather == weather }[0]
-            updateSavedOutfit(prefs, suitableOutfit)
-
-        }
-
-
-    }
-
-    private fun updateSavedOutfit(prefs: SharedPreferences, suitableOutfit: Outfit) {
-        prefs.edit().putInt(KEY_PREF_OUTFIT_ID, suitableOutfit.id).apply()
-        prefs.edit().putInt(KEY_PREF_OUTFIT_WEATHER, suitableOutfit.weather.ordinal).apply()
-        prefs.edit().putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
-        binding.apply {
-            recommendedOutfitTextView.visibility = View.VISIBLE
-            suitableOutfit.top.isSelected = true
-            suitableOutfit.bottom.isSelected = true
-            tops.find { it.topResId == suitableOutfit.top.topResId }?.isSelected = true
-            bottoms.find { it.bottomResId == suitableOutfit.bottom.bottomResId }?.isSelected = true
-            topAdapter.submitList(tops)
-            bottomAdapter.submitList(bottoms)
-            binding.topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
-            binding.bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        _binding = null
+    private fun updateViews(outfit: Outfit) {
+        runOnUiThread {
+            tops.find { it.topResId == outfit.top.topResId }?.isSelected = true
+            bottoms.find { it.bottomResId == outfit.bottom.bottomResId }?.isSelected = true
+            topAdapter.submitList(ArrayList(tops))
+            bottomAdapter.submitList(ArrayList(bottoms))
+            binding.apply {
+                topRecyclerView.adapter = topAdapter
+                bottomRecyclerView.adapter = bottomAdapter
+                topRecyclerView.smoothScrollToPosition(outfit.id)
+                bottomRecyclerView.smoothScrollToPosition(outfit.id)
+            }
+        }
+    }
+
+    private fun saveOutfit(outfit: Outfit) {
+        prefs.edit().apply {
+            putInt(KEY_PREF_OUTFIT_TOP_ID, outfit.top.id)
+            putInt(KEY_PREF_OUTFIT_BOTTOM_ID, outfit.bottom.id)
+            putInt(KEY_PREF_OUTFIT_WEATHER, outfit.weather.ordinal).apply()
+            putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
+        }.apply()
+
     }
 
     companion object {
@@ -288,32 +369,18 @@ class MainActivity : AppCompatActivity() {
         private const val PATH_CONDITION = "currentconditions//v1"
         private const val APIKEY = "3V7YuVcFgMrZFt9oLUTJAoVaFu8IXX2C"
         private const val KEY_PREF = "prefs"
-        private const val KEY_PREF_OUTFIT_ID = "prefs_outfit_id"
+        private const val KEY_PREF_OUTFIT_TOP_ID = "prefs_outfit_top_id"
+        private const val KEY_PREF_OUTFIT_BOTTOM_ID = "prefs_outfit_bottom_id"
         private const val KEY_PREF_OUTFIT_WEATHER = "prefs_outfit_weather"
         private const val KEY_PREF_TIMESTAMP = "prefs_timestamp"
+
     }
 
 }
 
 
-data class WeatherIcon(
-    @DrawableRes val iconResId: Int,
-    val iconValue: Int
-)
-
-
-
-data class Top(@DrawableRes val topResId: Int, var isSelected:Boolean = false)
-data class Bottom(@DrawableRes val bottomResId: Int, var isSelected:Boolean = false)
-data class Outfit(
-    val id: Int,
-    val top: Top,
-    val bottom: Bottom,
-    val weather: WEATHER
-)
-
-enum class WEATHER {
-    HOT,
-    MODERATE,
-    COLD
-}
+data class WeatherIcon(@DrawableRes val iconResId: Int, val iconValue: Int)
+data class Top(val id: Int, @DrawableRes val topResId: Int, var isSelected: Boolean = false)
+data class Bottom(val id: Int, @DrawableRes val bottomResId: Int, var isSelected: Boolean = false)
+data class Outfit(val id: Int, val top: Top, val bottom: Bottom, val weather: WEATHER)
+enum class WEATHER { HOT, MODERATE, COLD }
