@@ -246,51 +246,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun updateOutfit(weather: WEATHER) {/* val currentTopId = prefs.getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
-         val currentBottomId = prefs.getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
-         val timestamp = prefs.getLong(KEY_PREF_TIMESTAMP, -1)
-         if (currentTopId != -1 && currentBottomId != -1 && timestamp != -1L) {
-             val currentDate = LocalDate.now()
-             val oldDate =
-                 LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault())
-             val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
-             if (diff >= 1) {
-                 val condition = prefs.getInt(KEY_PREF_OUTFIT_WEATHER, -1)
-                 if (condition == weather.ordinal) {
-                     val newTopId = if (currentTopId == 0) 1 else 0
-                     val newBottomId = if (currentBottomId == 0) 1 else 0
-                     val suitableOutfit = outfits.filter {
-                         it.weather == weather
-                                 && it.top.topResId == newTopId
-                                 && it.bottom.bottomResId == newBottomId
-                     }[0]
-                     updateSavedOutfit(suitableOutfit)
-                 } else {
-                     val suitableOutfit = outfits.filter { it.weather == weather }[0]
-                     updateSavedOutfit(suitableOutfit)
-                 }
-             } else {
-                 val suitableOutfit = outfits.filter {
-                     it.weather == weather
-                             && it.top.id == currentTopId
-                             && it.bottom.id == currentBottomId
-                 }[0]
-                 val top = tops.find { it.id == suitableOutfit.top.id }!!
-                 val bottom = bottoms.find { it.id == suitableOutfit.bottom.id }!!
-                 top.isSelected = true
-                 bottom.isSelected = true
-                 topAdapter.submitList(tops)
-                 bottomAdapter.submitList(bottoms)
-                 binding.apply {
-                     recommendedOutfitTextView.visibility = View.VISIBLE
-                     topRecyclerView.smoothScrollToPosition(suitableOutfit.id)
-                     bottomRecyclerView.smoothScrollToPosition(suitableOutfit.id)
-                 }
-             }
-         } else {
-             val suitableOutfit = outfits.filter { it.weather == weather }[0]
-             updateSavedOutfit(suitableOutfit)
-         }*/
+    private fun updateOutfit(weather: WEATHER) {
         var savedWeatherOrdinal: Int
         var savedTopId: Int
         var savedBottomId: Int
