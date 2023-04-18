@@ -1,7 +1,5 @@
 package com.example.clothingsuggester.ui
 
-import android.app.Activity
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -19,17 +17,16 @@ import com.example.clothingsuggester.model.Top
 import com.example.clothingsuggester.model.WEATHER
 import com.example.clothingsuggester.model.WeatherCondition
 import com.example.clothingsuggester.model.WeatherIcon
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
+import com.example.clothingsuggester.utils.Constants
+import com.example.clothingsuggester.utils.DateManager
+import com.example.clothingsuggester.utils.PrefsManager
 
 
 class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback {
     private lateinit var binding: ActivityMainBinding
 
+    private lateinit var prefsManager: PrefsManager
     private lateinit var weatherIcons: ArrayList<WeatherIcon>
-    private lateinit var prefs: SharedPreferences
     private lateinit var topAdapter: TopAdapter
     private lateinit var bottomAdapter: BottomAdapter
     private lateinit var tops: ArrayList<Top>
@@ -47,7 +44,7 @@ class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback 
     }
 
     private fun initData() {
-        prefs = getSharedPreferences(KEY_PREF, Activity.MODE_PRIVATE)
+        prefsManager = PrefsManager(getSharedPreferences(Constants.KEY_PREF, MODE_PRIVATE))
         weatherIcons = ArrayList()
         weatherIcons.apply {
             add(WeatherIcon(R.drawable.i01, 1))
@@ -117,48 +114,77 @@ class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback 
     }
 
     private fun updateOutfitBasedOnWeather(weather: WEATHER) {
-        var savedWeatherOrdinal: Int
-        var savedTopId: Int
-        var savedBottomId: Int
-        var savedOldTopId: Int
-        var savedOldBottomId: Int
-        var savedTimestamp: Long
-        prefs.apply {
-            savedWeatherOrdinal = getInt(KEY_PREF_OUTFIT_WEATHER, -1)
-            savedTimestamp = getLong(KEY_PREF_TIMESTAMP, -1L)
-            savedTopId = getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
-            savedBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
-            savedOldTopId = getInt(KEY_PREF_OUTFIT_TOP_OLD_ID, -1)
-            savedOldBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_OLD_ID, -1)
-        }
-        if (savedWeatherOrdinal != weather.ordinal) {
+        /* var savedWeatherOrdinal: Int
+         var savedTopId: Int
+         var savedBottomId: Int
+         var savedOldTopId: Int
+         var savedOldBottomId: Int
+         var savedTimestamp: Long
+         prefs.apply {
+             savedWeatherOrdinal = getInt(KEY_PREF_OUTFIT_WEATHER, -1)
+             savedTimestamp = getLong(KEY_PREF_TIMESTAMP, -1L)
+             savedTopId = getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
+             savedBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
+             savedOldTopId = getInt(KEY_PREF_OUTFIT_TOP_OLD_ID, -1)
+             savedOldBottomId = getInt(KEY_PREF_OUTFIT_BOTTOM_OLD_ID, -1)
+         }*/
+        if (prefsManager.savedWeatherOrdinal != weather.ordinal) {
             val top = tops.find { it.weather == weather }!!
             val bottom = bottoms.find { it.weather == weather }!!
-            updateOutfit(top, bottom, savedOldTopId, savedOldBottomId)
-            saveOutfit(top, bottom, weather)
+            updateOutfit(
+                top,
+                bottom,
+                prefsManager.savedOldTopId,
+                prefsManager.savedOldBottomId
+            )
+            prefsManager.saveOutfit(top, bottom, weather)
         } else {
-            if (savedTimestamp != -1L && savedTopId != -1 && savedBottomId != -1) {
-                val currentDate = LocalDateTime.now()
-                val oldDate = LocalDateTime.ofInstant(Instant.ofEpochSecond(savedTimestamp), ZoneId.systemDefault())
-                val diff = ChronoUnit.DAYS.between(currentDate, oldDate)
+            if (prefsManager.savedTimestamp != -1L
+                && prefsManager.savedTopId != -1
+                && prefsManager.savedBottomId != -1
+            ) {
+                val currentDate = DateManager.getDate()
+                val oldDate = DateManager.getDateFromTimestamp(prefsManager.savedTimestamp)
+                val diff = DateManager.getDaysBetween(currentDate, oldDate)
                 if (diff >= 1) {
                     // different day
-                    val newTop = tops.find { it.topResId != savedTopId && it.weather == weather }!!
-                    val newBottom = bottoms.find { it.bottomResId != savedBottomId && it.weather == weather }!!
-                    updateOutfit(newTop, newBottom, savedOldTopId, savedOldBottomId)
-                    saveOutfit(newTop, newBottom, weather)
+                    val newTop = tops.find {
+                        it.topResId != prefsManager.savedTopId
+                                && it.weather == weather
+                    }!!
+                    val newBottom = bottoms.find {
+                        it.bottomResId != prefsManager.savedBottomId
+                                && it.weather == weather
+                    }!!
+                    updateOutfit(
+                        newTop,
+                        newBottom,
+                        prefsManager.savedOldTopId,
+                        prefsManager.savedOldBottomId
+                    )
+                    prefsManager.saveOutfit(newTop, newBottom, weather)
                 } else {
                     // same day
-                    val top = tops.find { it.topResId == savedTopId }!!
-                    val bottom = bottoms.find { it.bottomResId == savedBottomId }!!
-                    updateOutfit(top, bottom, savedOldTopId, savedOldBottomId)
+                    val top = tops.find { it.topResId == prefsManager.savedTopId }!!
+                    val bottom = bottoms.find { it.bottomResId == prefsManager.savedBottomId }!!
+                    updateOutfit(
+                        top,
+                        bottom,
+                        prefsManager.savedOldTopId,
+                        prefsManager.savedOldBottomId
+                    )
                 }
             } else {
                 // no data.
                 val top = tops.find { it.weather == weather }!!
                 val bottom = bottoms.find { it.weather == weather }!!
-                updateOutfit(top, bottom, savedOldTopId, savedOldBottomId)
-                saveOutfit(top, bottom, weather)
+                updateOutfit(
+                    top,
+                    bottom,
+                    prefsManager.savedOldTopId,
+                    prefsManager.savedOldBottomId
+                )
+                prefsManager.saveOutfit(top, bottom, weather)
             }
         }
     }
@@ -176,7 +202,6 @@ class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback 
                 oldTopItem.isOld = true
                 oldBottomItem.isOld = true
             }
-
             topAdapter.submitList(ArrayList(tops))
             bottomAdapter.submitList(ArrayList(bottoms))
             binding.apply {
@@ -186,22 +211,6 @@ class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback 
                 bottomRecyclerView.smoothScrollToPosition(bottoms.indexOf(bottomItem))
             }
         }
-    }
-
-    private fun saveOutfit(top: Top, bottom: Bottom, weather: WEATHER) {
-        val oldTopId = prefs.getInt(KEY_PREF_OUTFIT_TOP_ID, -1)
-        val oldBottomId = prefs.getInt(KEY_PREF_OUTFIT_BOTTOM_ID, -1)
-        prefs.edit().apply {
-            if (oldTopId != -1 && oldBottomId != -1) {
-                putInt(KEY_PREF_OUTFIT_TOP_OLD_ID, oldTopId)
-                putInt(KEY_PREF_OUTFIT_BOTTOM_OLD_ID, oldBottomId)
-            }
-            putInt(KEY_PREF_OUTFIT_TOP_ID, top.topResId)
-            putInt(KEY_PREF_OUTFIT_BOTTOM_ID, bottom.bottomResId)
-            putInt(KEY_PREF_OUTFIT_WEATHER, weather.ordinal).apply()
-            putLong(KEY_PREF_TIMESTAMP, Instant.now().epochSecond).apply()
-        }.apply()
-
     }
 
     private fun initViews(city: City, weatherCondition: WeatherCondition) {
@@ -257,13 +266,5 @@ class MainActivity : AppCompatActivity(), CityInfoCallback, WeatherInfoCallback 
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val KEY_PREF = "prefs"
-        private const val KEY_PREF_OUTFIT_TOP_ID = "prefs_outfit_top_id"
-        private const val KEY_PREF_OUTFIT_BOTTOM_ID = "prefs_outfit_bottom_id"
-        private const val KEY_PREF_OUTFIT_TOP_OLD_ID = "prefs_outfit_top_old_id"
-        private const val KEY_PREF_OUTFIT_BOTTOM_OLD_ID = "prefs_outfit_bottom_old_id"
-        private const val KEY_PREF_OUTFIT_WEATHER = "prefs_outfit_weather"
-        private const val KEY_PREF_TIMESTAMP = "prefs_timestamp"
-
     }
 }
