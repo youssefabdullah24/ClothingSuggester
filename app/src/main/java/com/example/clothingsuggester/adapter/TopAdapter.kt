@@ -1,4 +1,4 @@
-package com.example.clothingsuggester
+package com.example.clothingsuggester.adapter
 
 import android.graphics.Color
 import android.view.LayoutInflater
@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.clothingsuggester.databinding.ItemTopBinding
+import com.example.clothingsuggester.model.Top
 
 class TopAdapter : ListAdapter<Top, TopAdapter.ViewHolder>(TopDiffUtils()) {
     class ViewHolder(private val binding: ItemTopBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -21,9 +22,12 @@ class TopAdapter : ListAdapter<Top, TopAdapter.ViewHolder>(TopDiffUtils()) {
             if (top.isSelected) {
                 binding.cardView.strokeWidth = 8
                 binding.cardView.strokeColor = Color.BLACK
-            } else {
-                binding.cardView.strokeWidth = 0
             }
+            if(top.isOld){
+                binding.cardView.strokeWidth = 8
+                binding.cardView.strokeColor = Color.RED
+            }
+
         }
     }
 
